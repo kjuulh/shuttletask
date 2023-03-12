@@ -14,7 +14,8 @@ func TestCompile(t *testing.T) {
 	discovered, err := discover.Discover(ctx, "testdata/simple/shuttle.yaml")
 	assert.NoError(t, err)
 
-	err = compile.Compile(ctx, discovered)
+	path, err := compile.Compile(ctx, discovered)
 	assert.NoError(t, err)
-	assert.Error(t, err)
+
+	assert.Contains(t, path, "testdata/simple/.shuttle/shuttletask/binaries/shuttletask-")
 }

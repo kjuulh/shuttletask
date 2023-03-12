@@ -1,6 +1,7 @@
 package cmder
 
 import (
+	"context"
 	"log"
 	"reflect"
 
@@ -34,9 +35,10 @@ func (rc *RootCmd) Execute() {
 					return err
 				}
 
-				inputs := make([]reflect.Value, len(cmd.Args))
+				inputs := make([]reflect.Value, len(cmd.Args)+1)
+				inputs[0] = reflect.ValueOf(context.Background())
 				for i, arg := range parameters {
-					inputs[i] = reflect.ValueOf(arg)
+					inputs[i+1] = reflect.ValueOf(arg)
 				}
 
 				reflect.

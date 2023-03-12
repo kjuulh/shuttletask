@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -34,55 +35,61 @@ var (
 // 2.2. Generate main file
 //
 // 3. Move binary to .shuttle/shuttletask/binary-<hash>
-func Compile(ctx context.Context, discovered *discover.Discovered) error {
-	compile(ctx, discovered.Local)
-
-	return nil
-}
-
-func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) error {
-	hash, err := getHash(ctx, shuttletask)
+func Compile(ctx context.Context, discovered *discover.Discovered) (string, error) {
+	path, err := compile(ctx, discovered.Local)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	ok, err := binaryMatches(ctx, hash, shuttletask)
+	return path, nil
+}
+
+func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (string, error) {
+	hash, err := getHash(ctx, shuttletask)
 	if err != nil {
-		return err
+		return "", err
+	}
+
+	binaryPath, ok, err := binaryMatches(ctx, hash, shuttletask)
+	if err != nil {
+		return "", err
 	}
 
 	if ok {
 		// The binary is the same so we short circuit
-		return nil
+		return binaryPath, nil
 	}
 
 	shuttlelocaldir := path.Join(shuttletask.ParentDir, ".shuttle/shuttletask")
 
 	// Generate tmp dir
 	if err = generateTmpDir(ctx, shuttlelocaldir); err != nil {
-		return err
+		return "", err
 	}
 	// Copy files
 	if err = copyFiles(ctx, shuttlelocaldir, shuttletask); err != nil {
-		return err
+		return "", err
 	}
 
 	// Generate AST
 	// Generate Main file
 	if err = generateMainFile(ctx, shuttlelocaldir, shuttletask); err != nil {
-		return err
+		return "", err
 	}
 
 	// Compile package
 	if err = modTidy(ctx, shuttlelocaldir); err != nil {
-		return err
+		return "", err
 	}
-	if err = compileBinary(ctx, shuttlelocaldir); err != nil {
-		return err
+	binarypath, err := compileBinary(ctx, shuttlelocaldir)
+	if err != nil {
+		return "", err
 	}
 	// Move binary
+	finalBinaryPath := path.Join(shuttlelocaldir, "binaries", fmt.Sprintf("shuttletask-%s", hex.EncodeToString([]byte(hash)[:16])))
+	os.Rename(binarypath, finalBinaryPath)
 
-	return nil
+	return finalBinaryPath, nil
 }
 
 func modTidy(ctx context.Context, shuttlelocaldir string) error {
@@ -101,7 +108,7 @@ func modTidy(ctx context.Context, shuttlelocaldir string) error {
 	return nil
 }
 
-func compileBinary(ctx context.Context, shuttlelocaldir string) error {
+func compileBinary(ctx context.Context, shuttlelocaldir string) (string, error) {
 	log.Println("compiling binary")
 	cmd := exec.Command("go", "build")
 	cmd.Dir = path.Join(shuttlelocaldir, "tmp")
@@ -109,12 +116,12 @@ func compileBinary(ctx context.Context, shuttlelocaldir string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		println("%s", string(output))
-		return err
+		return "", err
 	}
 
 	println("%s", string(output))
 
-	return nil
+	return path.Join(shuttlelocaldir, "tmp", "shuttletask"), nil
 }
 
 func generateMainFile(ctx context.Context, shuttlelocaldir string, shuttletask *discover.ShuttleTaskDiscovered) error {
@@ -159,30 +166,30 @@ func generateTmpDir(ctx context.Context, shuttlelocaldir string) error {
 	return nil
 }
 
-func binaryMatches(ctx context.Context, hash string, shuttletask *discover.ShuttleTaskDiscovered) (bool, error) {
+func binaryMatches(ctx context.Context, hash string, shuttletask *discover.ShuttleTaskDiscovered) (string, bool, error) {
 	shuttlebindir := path.Join(shuttletask.ParentDir, ".shuttle/shuttletask/binaries")
 
 	if _, err := os.Stat(shuttlebindir); errors.Is(err, os.ErrNotExist) {
 		log.Println("DEBUG: package doesn't exist continueing")
-		return false, nil
+		return "", false, nil
 	}
 
 	entries, err := os.ReadDir(shuttlebindir)
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 
 	if len(entries) == 0 {
-		return false, err
+		return "", false, err
 	}
 
 	// We only expect a single binary in the folder, so we just take the first entry if it exists
 	binary := entries[0]
 
 	if binary.Name() == fmt.Sprintf("shuttletask-%s.go", hash) {
-		return true, nil
+		return path.Join(shuttlebindir, binary.Name()), true, nil
 	} else {
-		return false, nil
+		return "", false, nil
 	}
 }
 

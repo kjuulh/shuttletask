@@ -7,7 +7,7 @@ import (
 func main() {
   rootcmd := cmder.NewRoot()
   buildcmd := cmder.NewCmd("build", Build)
-  //buildcmd := cmder.WithArgs(buildcmd, "something")
+  buildcmd = cmder.WithArgs(buildcmd, "something")
 
   rootcmd.AddCmds(
     buildcmd,
