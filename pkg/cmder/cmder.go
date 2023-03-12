@@ -41,6 +41,8 @@ func (rc *RootCmd) Execute() {
 					inputs[i+1] = reflect.ValueOf(arg)
 				}
 
+				log.Printf("with args: %v", inputs)
+
 				reflect.
 					ValueOf(cmd.Func).
 					Call(inputs)
@@ -49,7 +51,7 @@ func (rc *RootCmd) Execute() {
 		}
 		for i, arg := range cmd.Args {
 			cobracmd.PersistentFlags().StringVar(&parameters[i], arg.Name, "", "")
-			_ = cobracmd.MarkFlagRequired(arg.Name)
+			_ = cobracmd.MarkPersistentFlagRequired(arg.Name)
 		}
 
 		rootcmd.AddCommand(cobracmd)

@@ -151,7 +151,11 @@ func generateTmpDir(ctx context.Context, shuttlelocaldir string) error {
 		return err
 	}
 
-	if err := os.MkdirAll(path.Join(shuttlelocaldir, "binaries"), 0755); err != nil {
+	binarydir := path.Join(shuttlelocaldir, "binaries")
+	if err := os.RemoveAll(binarydir); err != nil {
+		return nil
+	}
+	if err := os.MkdirAll(binarydir, 0755); err != nil {
 		return err
 	}
 
