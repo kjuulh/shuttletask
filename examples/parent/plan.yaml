@@ -1,0 +1,7 @@
+scripts:
+  parent:
+    actions:
+      - shell: shuttletask parent
+  build:
+    actions:
+      - shell: shuttletask build

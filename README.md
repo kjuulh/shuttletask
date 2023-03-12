@@ -42,7 +42,7 @@ cd shuttletask
 go mod init shuttletask
 go get github.com/kjuulh/shuttletask
 echo "
-//go:build shutletask
+//go:build shuttletask
 
 package main
 
