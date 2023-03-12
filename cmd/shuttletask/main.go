@@ -17,6 +17,8 @@ func main() {
 
 	rootcmd.AddCommand(
 		commands.CompileCommand(),
+		commands.RunCommand(),
+		commands.ListCommand(),
 	)
 
 	if err := rootcmd.Execute(); err != nil {

@@ -13,7 +13,9 @@ type RootCmd struct {
 }
 
 func NewRoot() *RootCmd {
-	return &RootCmd{}
+	cmd := &RootCmd{}
+
+	return cmd
 }
 
 func (rc *RootCmd) AddCmds(cmd ...*Cmd) *RootCmd {
@@ -24,6 +26,12 @@ func (rc *RootCmd) AddCmds(cmd ...*Cmd) *RootCmd {
 
 func (rc *RootCmd) Execute() {
 	rootcmd := &cobra.Command{Use: "shuttletask"}
+
+	rootcmd.AddCommand(
+		&cobra.Command{Use: "ls", RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Parent().Help()
+		}},
+	)
 
 	for _, cmd := range rc.Cmds {
 		parameters := make([]string, len(cmd.Args))
@@ -40,8 +48,6 @@ func (rc *RootCmd) Execute() {
 				for i, arg := range parameters {
 					inputs[i+1] = reflect.ValueOf(arg)
 				}
-
-				log.Printf("with args: %v", inputs)
 
 				reflect.
 					ValueOf(cmd.Func).

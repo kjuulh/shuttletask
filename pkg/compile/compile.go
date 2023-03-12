@@ -56,6 +56,7 @@ func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (
 	}
 
 	if ok {
+		log.Printf("file already matches continueing\n")
 		// The binary is the same so we short circuit
 		return binaryPath, nil
 	}
@@ -86,45 +87,47 @@ func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (
 		return "", err
 	}
 	// Move binary
-	finalBinaryPath := path.Join(shuttlelocaldir, "binaries", fmt.Sprintf("shuttletask-%s", hex.EncodeToString([]byte(hash)[:16])))
+	finalBinaryPath := path.Join(
+		shuttlelocaldir,
+		"binaries",
+		fmt.Sprintf("shuttletask-%s", hex.EncodeToString([]byte(hash)[:16])),
+	)
 	os.Rename(binarypath, finalBinaryPath)
 
 	return finalBinaryPath, nil
 }
 
 func modTidy(ctx context.Context, shuttlelocaldir string) error {
-	log.Println("go mod tidy")
 	cmd := exec.Command("go", "mod", "tidy")
 	cmd.Dir = path.Join(shuttlelocaldir, "tmp")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		println("%s", string(output))
+		log.Printf("%s\n", string(output))
 		return err
 	}
-
-	println("%s", string(output))
 
 	return nil
 }
 
 func compileBinary(ctx context.Context, shuttlelocaldir string) (string, error) {
-	log.Println("compiling binary")
 	cmd := exec.Command("go", "build")
 	cmd.Dir = path.Join(shuttlelocaldir, "tmp")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		println("%s", string(output))
+		log.Printf("%s\n", string(output))
 		return "", err
 	}
-
-	println("%s", string(output))
 
 	return path.Join(shuttlelocaldir, "tmp", "shuttletask"), nil
 }
 
-func generateMainFile(ctx context.Context, shuttlelocaldir string, shuttletask *discover.ShuttleTaskDiscovered) error {
+func generateMainFile(
+	ctx context.Context,
+	shuttlelocaldir string,
+	shuttletask *discover.ShuttleTaskDiscovered,
+) error {
 	tmpl, err := template.ParseFS(mainFileTmpl, "templates/mainFile.tmpl")
 	if err != nil {
 		return err
@@ -140,7 +143,11 @@ func generateMainFile(ctx context.Context, shuttlelocaldir string, shuttletask *
 	return tmpl.Execute(file, nil)
 }
 
-func copyFiles(ctx context.Context, shuttlelocaldir string, shuttletask *discover.ShuttleTaskDiscovered) error {
+func copyFiles(
+	ctx context.Context,
+	shuttlelocaldir string,
+	shuttletask *discover.ShuttleTaskDiscovered,
+) error {
 	tmpdir := path.Join(shuttlelocaldir, "tmp")
 
 	return cp.Copy(shuttletask.DirPath, tmpdir)
@@ -170,7 +177,11 @@ func generateTmpDir(ctx context.Context, shuttlelocaldir string) error {
 	return nil
 }
 
-func binaryMatches(ctx context.Context, hash string, shuttletask *discover.ShuttleTaskDiscovered) (string, bool, error) {
+func binaryMatches(
+	ctx context.Context,
+	hash string,
+	shuttletask *discover.ShuttleTaskDiscovered,
+) (string, bool, error) {
 	shuttlebindir := path.Join(shuttletask.ParentDir, ".shuttle/shuttletask/binaries")
 
 	if _, err := os.Stat(shuttlebindir); errors.Is(err, os.ErrNotExist) {
@@ -187,10 +198,11 @@ func binaryMatches(ctx context.Context, hash string, shuttletask *discover.Shutt
 		return "", false, err
 	}
 
+	log.Printf("%s", entries[0].Name())
 	// We only expect a single binary in the folder, so we just take the first entry if it exists
 	binary := entries[0]
 
-	if binary.Name() == fmt.Sprintf("shuttletask-%s.go", hash) {
+	if binary.Name() == fmt.Sprintf("shuttletask-%s", hex.EncodeToString([]byte(hash)[:16])) {
 		return path.Join(shuttlebindir, binary.Name()), true, nil
 	} else {
 		return "", false, nil
