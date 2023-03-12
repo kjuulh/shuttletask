@@ -6,11 +6,19 @@ import (
 
 func main() {
   rootcmd := cmder.NewRoot()
-  buildcmd := cmder.NewCmd("build", Build)
-  buildcmd = cmder.WithArgs(buildcmd, "something")
+
+  {{ range . -}}
+  {{- $name := .Name -}}
+  {{ lower $name  }}cmd := cmder.NewCmd("{{ lower $name  }}", {{ $name }})
+  {{ range .Input -}}
+  {{ lower $name }}cmd = cmder.WithArgs({{ lower $name  }}cmd, "{{ lower .Name  }}")
+  {{ end -}}
+  {{ end -}}
 
   rootcmd.AddCmds(
-    buildcmd,
+    {{- range . -}}
+    {{ lower .Name  }}cmd,
+    {{ end }}
   )
 
   rootcmd.Execute()

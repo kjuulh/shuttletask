@@ -7,11 +7,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"text/template"
 
 	"github.com/kjuulh/shuttletask/pkg/discover"
@@ -22,6 +26,10 @@ import (
 var (
 	//go:embed templates/mainFile.tmpl
 	mainFileTmpl embed.FS
+)
+
+const (
+	alwaysBuild = true
 )
 
 // discovered: Discovered shuttletask projects
@@ -55,7 +63,7 @@ func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (
 		return "", err
 	}
 
-	if ok {
+	if ok && !alwaysBuild { //FIXME: remember to flip to ok
 		log.Printf("file already matches continueing\n")
 		// The binary is the same so we short circuit
 		return binaryPath, nil
@@ -73,8 +81,13 @@ func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (
 	}
 
 	// Generate AST
+	contents, err := generateAst(ctx, shuttlelocaldir, shuttletask)
+	if err != nil {
+		return "", err
+	}
+
 	// Generate Main file
-	if err = generateMainFile(ctx, shuttlelocaldir, shuttletask); err != nil {
+	if err = generateMainFile(ctx, shuttlelocaldir, shuttletask, contents); err != nil {
 		return "", err
 	}
 
@@ -95,6 +108,74 @@ func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (
 	os.Rename(binarypath, finalBinaryPath)
 
 	return finalBinaryPath, nil
+}
+
+type Function struct {
+	Name   string
+	Input  []Arg
+	Output Output
+}
+
+type Arg struct {
+	Name string
+}
+
+type Output struct {
+	Error bool
+}
+
+func generateAst(ctx context.Context, shuttlelocaldir string, shuttletask *discover.ShuttleTaskDiscovered) ([]*Function, error) {
+	funcs := make([]*Function, 0)
+
+	for _, taskfile := range shuttletask.Files {
+		tknSet := token.NewFileSet()
+		astfile, err := parser.ParseFile(tknSet, path.Join(shuttlelocaldir, "tmp", taskfile), nil, parser.ParseComments)
+		if err != nil {
+			return nil, err
+		}
+		if ast.FileExports(astfile) {
+			decls := astfile.Decls
+			for _, decl := range decls {
+				funcdecl, ok := decl.(*ast.FuncDecl)
+				if ok {
+					f := Function{}
+					f.Name = funcdecl.Name.Name
+					param := funcdecl.Type
+					paramList := param.Params.List
+					for _, param := range paramList {
+						for _, name := range param.Names {
+							if name != nil && !strings.Contains(fmt.Sprintf("%s", param.Type), "Context") {
+								f.Input = append(f.Input, Arg{
+									Name: name.Name,
+								})
+							}
+						}
+					}
+					outputParam := param.Results
+					if outputParam != nil {
+						if len(outputParam.List) > 1 {
+							return nil, errors.New("only error is supported as an output param")
+						}
+						if len(outputParam.List) == 0 {
+							return nil, errors.New("output params are required, only error is supported")
+						}
+
+						for _, param := range outputParam.List {
+							if fmt.Sprintf("%s", param.Type) != "error" {
+								return nil, errors.New("output was not error")
+							}
+						}
+
+						f.Output = Output{Error: true}
+					}
+
+					funcs = append(funcs, &f)
+				}
+			}
+		}
+	}
+
+	return funcs, nil
 }
 
 func modTidy(ctx context.Context, shuttlelocaldir string) error {
@@ -127,12 +208,8 @@ func generateMainFile(
 	ctx context.Context,
 	shuttlelocaldir string,
 	shuttletask *discover.ShuttleTaskDiscovered,
+	functions []*Function,
 ) error {
-	tmpl, err := template.ParseFS(mainFileTmpl, "templates/mainFile.tmpl")
-	if err != nil {
-		return err
-	}
-
 	tmpmainfile := path.Join(shuttlelocaldir, "tmp/main.go")
 
 	file, err := os.Create(tmpmainfile)
@@ -140,7 +217,13 @@ func generateMainFile(
 		return err
 	}
 
-	return tmpl.Execute(file, nil)
+	tmpl := template.Must(template.New("mainFile.tmpl").Funcs(map[string]any{
+		"lower": strings.ToLower,
+	}).ParseFS(mainFileTmpl, "templates/mainFile.tmpl"))
+
+	err = tmpl.Execute(file, functions)
+
+	return err
 }
 
 func copyFiles(

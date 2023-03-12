@@ -34,6 +34,8 @@ func (rc *RootCmd) Execute() {
 	)
 
 	for _, cmd := range rc.Cmds {
+		cmd := cmd
+		log.Printf("%v\n", *cmd)
 		parameters := make([]string, len(cmd.Args))
 
 		cobracmd := &cobra.Command{
@@ -43,11 +45,13 @@ func (rc *RootCmd) Execute() {
 					return err
 				}
 
-				inputs := make([]reflect.Value, len(cmd.Args)+1)
-				inputs[0] = reflect.ValueOf(context.Background())
-				for i, arg := range parameters {
-					inputs[i+1] = reflect.ValueOf(arg)
+				inputs := make([]reflect.Value, 0, len(cmd.Args)+1)
+				inputs = append(inputs, reflect.ValueOf(context.Background()))
+				for _, arg := range parameters {
+					inputs = append(inputs, reflect.ValueOf(arg))
 				}
+
+				log.Printf("%v\n", parameters)
 
 				reflect.
 					ValueOf(cmd.Func).
