@@ -46,7 +46,7 @@ func (rc *RootCmd) Execute() {
 			},
 		}
 		for i, arg := range cmd.Args {
-			cobracmd.Flags().StringVar(&parameters[i], arg.Name, "", "")
+			cobracmd.PersistentFlags().StringVar(&parameters[i], arg.Name, "", "")
 			_ = cobracmd.MarkFlagRequired(arg.Name)
 		}
 
