@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/kjuulh/shuttletask/pkg/shuttlefile"
 )
 
 var (
@@ -47,6 +49,34 @@ func Discover(ctx context.Context, shuttlepath string) (*Discovered, error) {
 	}
 
 	localdir := path.Dir(shuttlepath)
+	localPlan, err := discoverPlan(localdir)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := shuttlefile.ParseFile(ctx, shuttlepath)
+	if err != nil {
+		return nil, err
+	}
+
+	discovered := Discovered{
+		Local: localPlan,
+	}
+
+	if config.Plan != "" {
+		planShuttleFile := path.Join(localdir, ".shuttle/plan")
+		parentPlan, err := discoverPlan(planShuttleFile)
+		if err != nil {
+			return nil, err
+		}
+
+		discovered.Plan = parentPlan
+	}
+
+	return &discovered, nil
+}
+
+func discoverPlan(localdir string) (*ShuttleTaskDiscovered, error) {
 	localshuttledirentries := make([]string, 0)
 
 	shuttletaskpath := path.Join(localdir, shuttletaskdir)
@@ -77,17 +107,14 @@ func Discover(ctx context.Context, shuttlepath string) (*Discovered, error) {
 				localshuttledirentries = append(localshuttledirentries, entry.Name())
 			}
 		}
-	}
 
-	discovered := Discovered{
-		Local: &ShuttleTaskDiscovered{
+		return &ShuttleTaskDiscovered{
 			DirPath:   shuttletaskpath,
 			Files:     localshuttledirentries,
 			ParentDir: localdir,
-		},
+		}, nil
+
 	}
+	return nil, nil
 
-	//TODO: Add plan as well
-
-	return &discovered, nil
 }
