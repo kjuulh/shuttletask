@@ -26,7 +26,7 @@ func ListCommand() *cobra.Command {
 				return err
 			}
 
-			execmd := exec.Command(binary, "ls")
+			execmd := exec.Command(binary.Local.Path, "ls")
 			output, err := execmd.CombinedOutput()
 			log.Printf("%s\n", string(output))
 			if err != nil {

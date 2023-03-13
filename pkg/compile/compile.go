@@ -10,11 +10,21 @@ import (
 	"github.com/kjuulh/shuttletask/pkg/discover"
 	"github.com/kjuulh/shuttletask/pkg/parser"
 	"github.com/kjuulh/shuttletask/pkg/shuttlefolder"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
 	alwaysBuild = false
 )
+
+type Binary struct {
+	Path string
+}
+
+type Binaries struct {
+	Local Binary
+	Plan  Binary
+}
 
 // discovered: Discovered shuttletask projects
 //
@@ -27,13 +37,37 @@ const (
 // 2.2. Generate main file
 //
 // 3. Move binary to .shuttle/shuttletask/binary-<hash>
-func Compile(ctx context.Context, discovered *discover.Discovered) (string, error) {
-	path, err := compile(ctx, discovered.Local)
-	if err != nil {
-		return "", err
+func Compile(ctx context.Context, discovered *discover.Discovered) (*Binaries, error) {
+	egrp, ctx := errgroup.WithContext(ctx)
+	binaries := &Binaries{}
+	if discovered.Local != nil {
+		egrp.Go(func() error {
+			path, err := compile(ctx, discovered.Local)
+			if err != nil {
+				return err
+			}
+
+			binaries.Local = Binary{Path: path}
+			return nil
+		})
+	}
+	if discovered.Plan != nil {
+		egrp.Go(func() error {
+			path, err := compile(ctx, discovered.Plan)
+			if err != nil {
+				return err
+			}
+
+			binaries.Plan = Binary{Path: path}
+			return nil
+		})
 	}
 
-	return path, nil
+	if err := egrp.Wait(); err != nil {
+		return nil, err
+	}
+
+	return binaries, nil
 }
 
 func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (string, error) {

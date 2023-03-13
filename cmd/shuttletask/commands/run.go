@@ -26,7 +26,7 @@ func RunCommand() *cobra.Command {
 				return err
 			}
 
-			execmd := exec.Command(binary, args...)
+			execmd := exec.Command(binary.Local.Path, args...)
 			output, err := execmd.CombinedOutput()
 			log.Printf("%s\n", string(output))
 			if err != nil {
