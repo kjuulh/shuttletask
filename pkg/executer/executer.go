@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 
 	"github.com/kjuulh/shuttletask/pkg/compile"
@@ -51,6 +52,13 @@ func executeAction(ctx context.Context, binaries *compile.Binaries, args ...stri
 
 func executeBinaryAction(ctx context.Context, binary *compile.Binary, args ...string) error {
 	execmd := exec.Command(binary.Path, args...)
+
+	workdir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	execmd.Env = append(execmd.Env, fmt.Sprintf("TASK_CONTEXT_DIR=%s", workdir))
+
 	output, err := execmd.CombinedOutput()
 	log.Printf("%s\n", string(output))
 	if err != nil {
