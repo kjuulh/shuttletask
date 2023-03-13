@@ -35,7 +35,7 @@ func (rc *RootCmd) Execute() {
 		}},
 	)
 
-	rootcmd.AddCommand(&cobra.Command{Hidden: true, Use: "ls-json", RunE: func(cmd *cobra.Command, args []string) error {
+	rootcmd.AddCommand(&cobra.Command{Hidden: true, Use: "lsjson", RunE: func(cmd *cobra.Command, args []string) error {
 		cmdNames := make([]string, len(rc.Cmds))
 		for i, cmd := range rc.Cmds {
 			cmd := cmd

@@ -65,7 +65,7 @@ func inquire(ctx context.Context, binary *compile.Binary) (actions []string, err
 		return []string{}, nil
 	}
 
-	cmd := exec.Command(binary.Path, "ls-json")
+	cmd := exec.Command(binary.Path, "lsjson")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("inquire failed and could not get a list of commands: %v", err)

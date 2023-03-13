@@ -41,8 +41,10 @@ func BinaryMatches(
 	binary := entries[0]
 
 	if binary.Name() == fmt.Sprintf("shuttletask-%s", hex.EncodeToString([]byte(hash)[:16])) {
+		log.Printf("shuttletask dir matches existing continuing")
 		return path.Join(shuttlebindir, binary.Name()), true, nil
 	} else {
+		log.Printf("binary does not match")
 		return "", false, nil
 	}
 }
