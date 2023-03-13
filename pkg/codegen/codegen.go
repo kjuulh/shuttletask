@@ -30,9 +30,15 @@ func GenerateMainFile(
 		return err
 	}
 
-	tmpl := template.Must(template.New("mainFile.tmpl").Funcs(map[string]any{
-		"lower": strings.ToLower,
-	}).ParseFS(mainFileTmpl, "templates/mainFile.tmpl"))
+	tmpl := template.
+		Must(
+			template.
+				New("mainFile.tmpl").
+				Funcs(map[string]any{
+					"lower": strings.ToLower,
+				}).
+				ParseFS(mainFileTmpl, "templates/mainFile.tmpl"),
+		)
 
 	err = tmpl.Execute(file, functions)
 
