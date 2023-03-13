@@ -2,4 +2,4 @@ plan: ../parent
 scripts:
   download:
     actions:
-      - shell: shuttletask download
+      - : shuttletask run download
