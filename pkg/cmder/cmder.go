@@ -2,6 +2,8 @@ package cmder
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"reflect"
 
@@ -32,6 +34,26 @@ func (rc *RootCmd) Execute() {
 			return cmd.Parent().Help()
 		}},
 	)
+
+	rootcmd.AddCommand(&cobra.Command{Hidden: true, Use: "ls-json", RunE: func(cmd *cobra.Command, args []string) error {
+		cmdNames := make([]string, len(rc.Cmds))
+		for i, cmd := range rc.Cmds {
+			cmd := cmd
+			cmdNames[i] = cmd.Name
+		}
+
+		rawJson, err := json.Marshal(cmdNames)
+		if err != nil {
+			return err
+		}
+
+		_, err = fmt.Printf("%s", string(rawJson))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}})
 
 	for _, cmd := range rc.Cmds {
 		cmd := cmd
