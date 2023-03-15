@@ -82,7 +82,7 @@ func compile(ctx context.Context, shuttletask *discover.ShuttleTaskDiscovered) (
 	}
 
 	if ok && !alwaysBuild {
-		log.Printf("file already matches continueing\n")
+		log.Printf("DEBUG: file already matches continueing\n")
 		// The binary is the same so we short circuit
 		return binaryPath, nil
 	}
