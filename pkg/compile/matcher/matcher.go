@@ -36,15 +36,13 @@ func BinaryMatches(
 		return "", false, err
 	}
 
-	log.Printf("%s", entries[0].Name())
 	// We only expect a single binary in the folder, so we just take the first entry if it exists
 	binary := entries[0]
 
 	if binary.Name() == fmt.Sprintf("shuttletask-%s", hex.EncodeToString([]byte(hash)[:16])) {
-		log.Printf("shuttletask dir matches existing continuing")
 		return path.Join(shuttlebindir, binary.Name()), true, nil
 	} else {
-		log.Printf("binary does not match")
+		log.Printf("DEBUG: binary does not match, rebuilding...")
 		return "", false, nil
 	}
 }

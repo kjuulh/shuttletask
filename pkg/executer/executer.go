@@ -25,7 +25,6 @@ func executeAction(ctx context.Context, binaries *compile.Binaries, args ...stri
 	}
 
 	cmdToExecute := args[0]
-	log.Printf("%s\n%s", localInquire, planInquire)
 
 	for _, cmd := range localInquire {
 		if cmd == cmdToExecute {
@@ -70,6 +69,10 @@ func executeBinaryAction(ctx context.Context, binary *compile.Binary, args ...st
 
 func inquire(ctx context.Context, binary *compile.Binary) (actions []string, err error) {
 	if binary == nil {
+		return []string{}, nil
+	}
+
+	if binary.Path == "" {
 		return []string{}, nil
 	}
 
