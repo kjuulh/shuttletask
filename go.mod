@@ -3,12 +3,12 @@ module github.com/kjuulh/shuttletask
 go 1.20
 
 require (
-	github.com/lunarway/shuttle v0.17.1
-	github.com/otiai10/copy v1.9.0
-	github.com/spf13/cobra v1.6.1
-	github.com/stretchr/testify v1.8.2
-	golang.org/x/mod v0.9.0
-	golang.org/x/sync v0.1.0
+	github.com/lunarway/shuttle v0.23.0
+	github.com/otiai10/copy v1.14.0
+	github.com/spf13/cobra v1.8.0
+	github.com/stretchr/testify v1.9.0
+	golang.org/x/mod v0.16.0
+	golang.org/x/sync v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
